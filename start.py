@@ -1,6 +1,7 @@
 import glob
 import os
 import boto3
+import json
 
 from config import Config
 
@@ -27,9 +28,17 @@ s3 = boto3.client('s3',
 
 bucket_name = f"tail-database-tails-{Config.environment}"
 
-for filename in glob.glob(f"{Config.input_directory}/*.json"):
-    key = os.path.basename(filename)
+with open(f"{Config.input_directory}/tails.json") as f:
+    tails = json.load(f)
 
-    s3.upload_file(filename, bucket_name, key)
+    # Only upload files if tails.json contains data
+    # Should alert if the file is empty as this indicates an issue
+    if len(tails) > 0:
+        for filename in glob.glob(f"{Config.input_directory}/*.json"):
+            key = os.path.basename(filename)
 
-    print(f"Uploaded {key} to {bucket_name}")
+            s3.upload_file(filename, bucket_name, key)
+
+            print(f"Uploaded {key} to {bucket_name}")
+    else:
+        print("tails.json is empty")
